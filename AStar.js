@@ -5,7 +5,7 @@ function sleep(ms) {
 const canvas = document.getElementById("gridCanvas");
 const context = canvas.getContext("2d");
 // Set canvas size
-canvas.width = 800;
+canvas.width = 900;
 canvas.height = 600
 // Grid settings
 const gridSize = 20;
@@ -15,9 +15,9 @@ const rows = canvasHeight / gridSize;
 const cols = canvasWidth / gridSize;
 context.translate(1, 1);
 
-function colorCell(row, col, color) {
+function colorCell(row, col, color, size = 1) {
     context.fillStyle = color;
-    context.fillRect(col * gridSize, row * gridSize, gridSize, gridSize);
+    context.fillRect(col * gridSize, row * gridSize, gridSize * size, gridSize * size);
 }
 
 function drawGrid() {
@@ -35,9 +35,7 @@ function drawGrid() {
         context.lineTo(col, canvasHeight)
         context.stroke()
     }
-    
 }
-
 
 class Cell {
     constructor(row, col, wall = false) {
@@ -70,8 +68,7 @@ function createCells() {
         for (let col = 0; col < cols; col++) {
             let wall = false;
             if (row === 0 || col === 0 || row === rows - 1 || 
-                col === cols - 1 || Math.random() < 0.1) {
-                colorCell(row, col, '#5A5A5A')
+                col === cols - 1 || Math.random() < 0.5) {
                 wall = true;
             }
             gridRow.push(new Cell(row, col, wall));
@@ -81,9 +78,9 @@ function createCells() {
 }
 
 function distance(cell1, cell2) {
-    let a = cell1 - cell2;
-    let b = cell1 - cell2;
-    return Math.sqrt( a*a + b*b );
+    let a = cell1.row - cell2.row;
+    let b = cell1.col - cell2.col;
+    return Math.sqrt(a*a + b*b);
 }
 
 drawGrid();
@@ -95,17 +92,19 @@ let end = grid[rows - 2][cols - 2]
 end.wall = false
 
 function updateColor(current, openSet) {
+    context.clearRect(0, 0, canvas.width, canvas.height);
     for (const row of grid) {
         for (const cell of row) {
             if (cell.wall == false)
-            colorCell(cell.row, cell.col, "white");
+                colorCell(cell.row, cell.col, "white");
+            else {
+                colorCell(cell.row, cell.col, '#5A5A5A')
+            }
         }
     }
-
     for (const cell of openSet) {
         colorCell(cell.row, cell.col, "purple")
     }
-
     while (current.parent != undefined) {
         colorCell(current.row, current.col, "blue");
         current = current.parent;
@@ -133,7 +132,6 @@ async function AStar() {
         let idx = openSet.indexOf(current);
         openSet.splice(idx, 1);
         for (const neighbour of current.getNeighbours(grid)) {
-
             tempG = current.g + 1;
             if (tempG < neighbour.g) {
                 neighbour.parent = current;
