@@ -8,7 +8,7 @@ const context = canvas.getContext("2d");
 canvas.width = 900;
 canvas.height = 600
 // Grid settings
-const gridSize = 20;
+const gridSize = 10;
 const canvasWidth = canvas.width;
 const canvasHeight = canvas.height;
 const rows = canvasHeight / gridSize;
@@ -68,13 +68,27 @@ function createCells() {
         for (let col = 0; col < cols; col++) {
             let wall = false;
             if (row === 0 || col === 0 || row === rows - 1 || 
-                col === cols - 1 || Math.random() < 0.5) {
+                col === cols - 1 || Math.random() < 0) {
                 wall = true;
             }
             gridRow.push(new Cell(row, col, wall));
         }
         grid.push(gridRow);
     }
+}
+
+function resetCells() {
+    for (const row of grid) {
+        for (const cell of row) {
+            if (cell.row === 0 || cell.col === 0 || cell.row === rows - 1 || 
+                cell.col === cols - 1 || Math.random() < 0) {
+                wall = true;
+            }
+            cell.g = Number.MAX_VALUE;
+            cell.f = Number.MAX_VALUE;
+        }
+    }
+    start.g = 0;
 }
 
 function distance(cell1, cell2) {
@@ -86,7 +100,6 @@ function distance(cell1, cell2) {
 drawGrid();
 createCells();
 let start = grid[1][1];
-start.g = 0;
 start.wall = false;
 let end = grid[rows - 2][cols - 2]
 end.wall = false
@@ -114,6 +127,7 @@ function updateColor(current, openSet) {
 }
 
 async function AStar() {
+    resetCells()
     openSet = [start];
     while (openSet.length != 0) {
         let current = openSet[0];
@@ -128,25 +142,70 @@ async function AStar() {
             console.log("Succeed!")
             return true;
         }
-
+        
         let idx = openSet.indexOf(current);
         openSet.splice(idx, 1);
         for (const neighbour of current.getNeighbours(grid)) {
             tempG = current.g + 1;
+            console.log(tempG, current.g);
             if (tempG < neighbour.g) {
                 neighbour.parent = current;
                 neighbour.g = tempG;
                 neighbour.f = tempG + distance(neighbour, end);
                 if (!openSet.includes(neighbour)) {
                     openSet.push(neighbour);
+                    
                 }
             }
         }
+        
         updateColor(current, openSet)
-        await sleep(20);
+        await sleep(30);
     }
     console.log("Failed!")
     return false;
+}
+
+canvas.addEventListener("mousedown", handleMouseDown);
+canvas.addEventListener("mouseup", handleMouseUp);
+canvas.addEventListener("mousemove", handleMouseMove);
+canvas.addEventListener("contextmenu", function (event) {
+    event.preventDefault();
+});
+
+let leftClicking = false;
+let rightClicking = false;
+
+function handleMouseDown(event) {
+    event.preventDefault();
+    if (event.button === 0) {
+        leftClicking = true;
+    } else if (event.button === 2) {
+        rightClicking = true;
+    }
+
+}
+
+function handleMouseUp(event) {
+    event.preventDefault();
+    leftClicking = false;
+    rightClicking = false;
+}
+
+function handleMouseMove(event) {
+    event.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    let col = Math.floor((event.clientX - rect.left) / gridSize);
+    let row = Math.floor((event.clientY - rect.top) / gridSize);
+
+    if (leftClicking) {
+        grid[row][col].wall = true;
+        AStar();
+    }
+    if (rightClicking) {
+        grid[row][col].wall = false;
+        AStar();
+    }
 }
 
 console.log(AStar());
